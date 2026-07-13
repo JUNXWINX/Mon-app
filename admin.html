@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doodle - Admin Panel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .status {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status.connected {
+            background: #f0fff4;
+            border-left-color: #48bb78;
+            color: #22543d;
+        }
+
+        .status.disconnected {
+            background: #fff5f5;
+            border-left-color: #f56565;
+            color: #742a2a;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status.connected .status-dot {
+            background: #48bb78;
+        }
+
+        .status.disconnected .status-dot {
+            background: #f56565;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 5px;
+            font-weight: bold;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        input[type="text"]::placeholder {
+            letter-spacing: normal;
+            font-weight: normal;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+        }
+
+        .message.success {
+            background: #f0fff4;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+            display: block;
+        }
+
+        .message.error {
+            background: #fff5f5;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+            display: block;
+        }
+
+        .message.info {
+            background: #f0f7ff;
+            color: #2c5282;
+            border: 1px solid #90cdf4;
+            display: block;
+        }
+
+        .info-box {
+            background: #fef5e7;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 25px;
+            font-size: 13px;
+            color: #7d6608;
+            line-height: 1.6;
+        }
+
+        .clients-count {
+            background: #f0f7ff;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #2c5282;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🎛️</div>
+            <h1>Panneau Admin</h1>
+            <p class="subtitle">Gérer le code de vérification</p>
+        </div>
+
+        <div class="status disconnected" id="status">
+            <span class="status-dot"></span>
+            <span id="statusText">Connexion en cours...</span>
+        </div>
+
+        <div class="clients-count" id="clientsCount">
+            👥 Clients connectés: 0
+        </div>
+
+        <form onsubmit="submitCode(event)">
+            <div class="form-group">
+                <label for="code">Entrez le code (2 chiffres)</label>
+                <input 
+                    type="text" 
+                    id="code" 
+                    placeholder="00" 
+                    maxlength="2" 
+                    inputmode="numeric"
+                    pattern="[0-9]{2}"
+                    required
+                >
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn">Envoyer le code</button>
+        </form>
+
+        <div class="message" id="message"></div>
+
+        <div class="info-box">
+            ℹ️ <strong>Comment ça fonctionne:</strong><br>
+            1. Entrez un code de 2 chiffres (00-99)<br>
+            2. Cliquez sur "Envoyer le code"<br>
+            3. Le code sera envoyé à tous les clients connectés en temps réel<br>
+            4. Les utilisateurs doivent confirmer le code reçu
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = window.location.origin;
+        let ws = null;
+        let connectedClients = 0;
+
+        // Initialiser WebSocket
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}`;
+            
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('✅ WebSocket connecté');
+                updateStatus(true);
+                sendPing();
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('📨 Message WebSocket:', data);
+                
+                if (data.type === 'pong') {
+                    // Garder la connexion vivante
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('❌ Erreur WebSocket:', error);
+                updateStatus(false);
+            };
+
+            ws.onclose = () => {
+                console.log('❌ WebSocket fermé');
+                updateStatus(false);
+                // Reconnecter après 3 secondes
+                setTimeout(initWebSocket, 3000);
+            };
+        }
+
+        // Envoyer un ping pour garder la connexion vivante
+        function sendPing() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping' }));
+            }
+            setTimeout(sendPing, 30000); // Chaque 30 secondes
+        }
+
+        // Mettre à jour le statut
+        function updateStatus(connected) {
+            const statusEl = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+
+            if (connected) {
+                statusEl.classList.remove('disconnected');
+                statusEl.classList.add('connected');
+                statusText.textContent = '✅ Connecté au serveur';
+            } else {
+                statusEl.classList.remove('connected');
+                statusEl.classList.add('disconnected');
+                statusText.textContent = '❌ Déconnecté - Tentative de reconnexion...';
+            }
+        }
+
+        // Soumettre le code
+        async function submitCode(event) {
+            event.preventDefault();
+
+            const code = document.getElementById('code').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const messageEl = document.getElementById('message');
+
+            // Valider
+            if (code.length !== 2 || isNaN(code)) {
+                showMessage('Le code doit être 2 chiffres (00-99)', 'error');
+                return;
+            }
+
+            // Désactiver le bouton
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Envoi en cours...';
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/submit-code`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage(`✅ Code ${code} envoyé! (${data.clientsNotified} client(s) notifié(s))`, 'success');
+                    document.getElementById('code').value = '';
+                } else {
+                    showMessage('❌ Erreur: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showMessage('❌ Erreur de connexion au serveur', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Envoyer le code';
+            }
+        }
+
+        // Afficher un message
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+
+            if (type !== 'info') {
+                setTimeout(() => {
+                    messageEl.className = 'message';
+                }, 5000);
+            }
+        }
+
+        // Mettre à jour le nombre de clients
+        function updateClientsCount() {
+            fetch(`${SERVER_URL}/api/test`)
+                .then(res => res.json())
+                .then(data => {
+                    const count = data.connectedClients || 0;
+                    document.getElementById('clientsCount').textContent = `👥 Clients connectés: ${count}`;
+                })
+                .catch(err => console.error('Erreur:', err));
+        }
+
+        // Initialiser
+        document.addEventListener('DOMContentLoaded', () => {
+            initWebSocket();
+            updateClientsCount();
+            setInterval(updateClientsCount, 2000); // Mettre à jour chaque 2 secondes
+
+            // Focus sur l'input
+            document.getElementById('code').focus();
+        });
+    </script>
+</body>
+</html>

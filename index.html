@@ -56,6 +56,59 @@
             <a href="#" class="create-link">Créer un compte</a>
             <button class="btn" onclick="goToScreen(1)">Suivant</button>
         </div>
+
+        <!-- Écran 4: Chargement (Un instant) -->
+        <div class="screen" id="screen4" style="display: none;">
+            <div class="loading-container">
+                <div class="spinner"></div>
+                <h2>Un instant</h2>
+                <p id="loadingText">Vérification en cours...</p>
+            </div>
+        </div>
+
+        <!-- Écran 5: Vérification du code -->
+        <div class="screen" id="screen5" style="display: none;">
+            <div class="logo">Doodle</div>
+            <h1>Vérifiez que c'est vous</h1>
+            <p class="info-text">Sélectionnez le code ci-dessous dans l'email que vous avez reçu pour confirmer que c'est vous.</p>
+            
+            <div class="code-display">
+                <div class="code-box" id="codeDisplay">--</div>
+            </div>
+
+            <p class="code-instruction">Revenez à votre email et sélectionnez ce code:</p>
+
+            <div class="form-group">
+                <label for="verifyCode">Entrez le code reçu par email:</label>
+                <input type="text" id="verifyCode" placeholder="00" class="input-field" maxlength="2" inputmode="numeric">
+            </div>
+
+            <button class="btn" onclick="verifyCode()">Confirmer</button>
+            <a href="#" class="forgot-link" onclick="goToScreen(4); startLoadingScreen()">Changer d'email</a>
+        </div>
+
+        <!-- Écran 6: Confirmé -->
+        <div class="screen" id="screen6" style="display: none;">
+            <div class="success-container">
+                <div class="success-icon">✅</div>
+                <h1>Confirmé</h1>
+                <p>Votre identité a été vérifiée avec succès!</p>
+                <button class="btn" onclick="goToScreen(7)">Continuer</button>
+            </div>
+        </div>
+
+        <!-- Écran 7: Dashboard/Accueil -->
+        <div class="screen" id="screen7" style="display: none;">
+            <div class="logo">Doodle</div>
+            <h1>Bienvenue!</h1>
+            <div class="dashboard">
+                <div class="welcome-box">
+                    <p id="welcomeEmail">Vous êtes connecté ✅</p>
+                </div>
+                <p class="info-text">Votre session est activée. Vous pouvez maintenant accéder à tous les services Doodle.</p>
+                <button class="btn" onclick="logout()">Déconnexion</button>
+            </div>
+        </div>
     </div>
 
     <script src="script.js"></script>
