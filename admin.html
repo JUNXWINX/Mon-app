@@ -124,6 +124,33 @@
             font-weight: normal;
         }
 
+        .code-preview {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .code-preview-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .code-preview-value {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            letter-spacing: 8px;
+        }
+
+        .code-preview-value.empty {
+            color: #cbd5e0;
+        }
+
         .btn {
             width: 100%;
             padding: 15px;
@@ -137,12 +164,12 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
-        .btn:active {
+        .btn:active:not(:disabled) {
             transform: translateY(0);
         }
 
@@ -150,6 +177,15 @@
             opacity: 0.7;
             cursor: not-allowed;
             transform: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            box-shadow: 0 10px 20px rgba(72, 187, 120, 0.3);
         }
 
         .message {
@@ -202,12 +238,38 @@
             font-size: 14px;
             color: #2c5282;
         }
+
+        .countdown {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            background: #fef5e7;
+            border-radius: 10px;
+            margin-top: 20px;
+            border: 2px solid #f39c12;
+        }
+
+        .countdown.active {
+            display: block;
+        }
+
+        .countdown-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #f39c12;
+            margin: 10px 0;
+        }
+
+        .countdown-text {
+            color: #7d6608;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">🎛️</div>
+            <div class="logo">🖥️</div>
             <h1>Panneau Admin</h1>
             <p class="subtitle">Gérer le code de vérification</p>
         </div>
@@ -221,22 +283,31 @@
             👥 Clients connectés: 0
         </div>
 
-        <form onsubmit="submitCode(event)">
-            <div class="form-group">
-                <label for="code">Entrez le code (2 chiffres)</label>
-                <input 
-                    type="text" 
-                    id="code" 
-                    placeholder="00" 
-                    maxlength="2" 
-                    inputmode="numeric"
-                    pattern="[0-9]{2}"
-                    required
-                >
-            </div>
+        <div class="form-group">
+            <label for="code">Entrez le code (2 chiffres)</label>
+            <input 
+                type="text" 
+                id="code" 
+                placeholder="00" 
+                maxlength="2" 
+                inputmode="numeric"
+                pattern="[0-9]{2}"
+            >
+        </div>
 
-            <button type="submit" class="btn" id="submitBtn">Envoyer le code</button>
-        </form>
+        <div class="code-preview">
+            <div class="code-preview-label">Aperçu du code:</div>
+            <div class="code-preview-value empty" id="codePreview">--</div>
+        </div>
+
+        <button type="button" class="btn" id="submitBtn" onclick="submitCode()">Envoyer le code</button>
+        <button type="button" class="btn btn-secondary" id="confirmBtn" onclick="confirmCode()" style="display: none;">Confirmer le code</button>
+
+        <div class="countdown" id="countdown">
+            <div class="countdown-text">⏳ Confirmation en cours...</div>
+            <div class="countdown-number" id="countdownNumber">30</div>
+            <div class="countdown-text">secondes restantes</div>
+        </div>
 
         <div class="message" id="message"></div>
 
@@ -244,8 +315,9 @@
             ℹ️ <strong>Comment ça fonctionne:</strong><br>
             1. Entrez un code de 2 chiffres (00-99)<br>
             2. Cliquez sur "Envoyer le code"<br>
-            3. Le code sera envoyé à tous les clients connectés en temps réel<br>
-            4. Les utilisateurs doivent confirmer le code reçu
+            3. Le code sera envoyé aux clients en temps réel<br>
+            4. Cliquez sur "Confirmer le code"<br>
+            5. Après 30 secondes, la confirmation s'affichera chez le client
         </div>
     </div>
 
@@ -253,6 +325,8 @@
         const SERVER_URL = window.location.origin;
         let ws = null;
         let connectedClients = 0;
+        let currentCode = null;
+        let isConfirming = false;
 
         // Initialiser WebSocket
         function initWebSocket() {
@@ -313,12 +387,23 @@
             }
         }
 
-        // Soumettre le code
-        async function submitCode(event) {
-            event.preventDefault();
+        // Mettre à jour l'aperçu du code
+        document.getElementById('code').addEventListener('input', function() {
+            const codePreview = document.getElementById('codePreview');
+            if (this.value.length === 2) {
+                codePreview.textContent = this.value;
+                codePreview.classList.remove('empty');
+            } else {
+                codePreview.textContent = '--';
+                codePreview.classList.add('empty');
+            }
+        });
 
+        // Soumettre le code
+        async function submitCode() {
             const code = document.getElementById('code').value;
             const submitBtn = document.getElementById('submitBtn');
+            const confirmBtn = document.getElementById('confirmBtn');
             const messageEl = document.getElementById('message');
 
             // Valider
@@ -343,8 +428,13 @@
                 const data = await response.json();
 
                 if (data.success) {
+                    currentCode = code;
                     showMessage(`✅ Code ${code} envoyé! (${data.clientsNotified} client(s) notifié(s))`, 'success');
-                    document.getElementById('code').value = '';
+                    
+                    // Afficher le bouton de confirmation
+                    submitBtn.style.display = 'none';
+                    confirmBtn.style.display = 'block';
+                    document.getElementById('code').disabled = true;
                 } else {
                     showMessage('❌ Erreur: ' + data.message, 'error');
                 }
@@ -355,6 +445,79 @@
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Envoyer le code';
             }
+        }
+
+        // Confirmer le code
+        async function confirmCode() {
+            const code = currentCode;
+            const confirmBtn = document.getElementById('confirmBtn');
+            const countdownEl = document.getElementById('countdown');
+            const messageEl = document.getElementById('message');
+
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Confirmation en cours...';
+            isConfirming = true;
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/confirm-code`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ code: code })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage(`✅ ${data.message}`, 'info');
+                    
+                    // Afficher le compte à rebours
+                    countdownEl.classList.add('active');
+                    confirmBtn.style.display = 'none';
+
+                    // Compte à rebours
+                    let seconds = 30;
+                    const interval = setInterval(() => {
+                        document.getElementById('countdownNumber').textContent = seconds;
+                        seconds--;
+
+                        if (seconds < 0) {
+                            clearInterval(interval);
+                            countdownEl.classList.remove('active');
+                            showMessage('✅ Confirmation envoyée au client!', 'success');
+                            resetForm();
+                        }
+                    }, 1000);
+                } else {
+                    showMessage('❌ Erreur: ' + data.message, 'error');
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = 'Confirmer le code';
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showMessage('❌ Erreur de connexion au serveur', 'error');
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirmer le code';
+            }
+        }
+
+        // Réinitialiser le formulaire
+        function resetForm() {
+            const submitBtn = document.getElementById('submitBtn');
+            const confirmBtn = document.getElementById('confirmBtn');
+            const codeInput = document.getElementById('code');
+            const codePreview = document.getElementById('codePreview');
+
+            codeInput.value = '';
+            codeInput.disabled = false;
+            codeInput.focus();
+            codePreview.textContent = '--';
+            codePreview.classList.add('empty');
+            submitBtn.style.display = 'block';
+            confirmBtn.style.display = 'none';
+            currentCode = null;
+            isConfirming = false;
         }
 
         // Afficher un message

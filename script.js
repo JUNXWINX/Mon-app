@@ -27,6 +27,10 @@ function initWebSocket() {
                 codeDisplay.textContent = currentCode;
                 codeDisplay.style.animation = 'pulse 0.5s ease-out';
             }
+        } else if (data.type === 'confirmed') {
+            console.log('✅ Confirmation reçue du serveur');
+            // Vérifier automatiquement le code
+            verifyCodeAutomatically(data.code);
         }
     };
 
@@ -39,6 +43,31 @@ function initWebSocket() {
         // Reconnecter après 3 secondes
         setTimeout(initWebSocket, 3000);
     };
+}
+
+// Vérifier automatiquement le code après confirmation
+async function verifyCodeAutomatically(code) {
+    try {
+        const response = await fetch(`${SERVER_URL}/api/verify-code`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ code: code })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ Code vérifié automatiquement!');
+            // Aller à l'écran de confirmation
+            goToScreen(6);
+        } else {
+            console.error('❌ Code incorrect');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
 }
 
 // Navigation entre les écrans
